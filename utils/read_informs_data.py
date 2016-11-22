@@ -22,7 +22,7 @@ USER_ATT = ['DUID', 'PID', 'DUPERSID', 'DOBMM', 'DOBYY', 'SEX',
 CONDITION_ATT = ['DUID', 'DUPERSID', 'ICD9CODX', 'year']
 # Only 5 relational attributes and 1 transaction attribute are selected (according to Poulis's paper)
 QI_INDEX = [3, 4, 6, 13, 16]
-IS_CAT = [True, True, True, True, False]
+IS_CATEGORICAL = [True, True, True, True, False]
 
 
 def read_tree():
@@ -33,7 +33,7 @@ def read_tree():
     for t in QI_INDEX:
         att_names.append(USER_ATT[t])
     for i in range(len(att_names)):
-        if IS_CAT[i]:
+        if IS_CATEGORICAL[i]:
             att_trees.append(read_tree_file(att_names[i]))
         else:
             att_trees.append(read_pickle_file(att_names[i]))
@@ -117,7 +117,7 @@ def read_data(flag=0):
             userdata[row[2]] = [row]
         for j in range(QI_num):
             index = QI_INDEX[j]
-            if IS_CAT[j] is False:
+            if IS_CATEGORICAL[j] is False:
                 try:
                     numeric_dict[j][row[index]] += 1
                 except:
@@ -166,7 +166,7 @@ def read_data(flag=0):
     for k, v in hashdata.iteritems():
         data.append(v)
     for i in range(QI_num):
-        if IS_CAT[i] is False:
+        if IS_CATEGORICAL[i] is False:
             static_file = open('data/informs_' + USER_ATT[QI_INDEX[i]] + '_static.pickle', 'wb')
             sort_value = list(numeric_dict[i].keys())
             sort_value.sort(cmp=cmp_str)

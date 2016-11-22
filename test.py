@@ -3,7 +3,6 @@ import pdb
 from models.gentree import GenTree
 from mondrian_l_diversity import mondrian_l_diversity
 
-# Build a GenTree object
 ATT_TREE = {}
 
 
@@ -22,30 +21,33 @@ def init_tree():
     ATT_TREE['b2'] = GenTree('b2', rt, True)
 
 
-class test_mondrian_l_diversity(unittest.TestCase):
-
-    def test_mondrian_l_diversity(self):
+class TestMondrianLDiversity(unittest.TestCase):
+    def test_group(self):
         init_tree()
         att_trees = [ATT_TREE]
-        data = [['a1', ['a1']],
-                ['b2', ['a1', 'a2']],
-                ['b1', ['b1', 'b2']],
-                ['b2', ['b1', 'b2']],
-                ['b1', ['a1', 'a2', 'b2']],
-                ['b2', ['a1', 'a2', 'b2']],
-                ['a1', ['a1', 'a2', 'b1', 'b2']]]
-        result, eval_result = mondrian_l_diversity(att_trees, data, 2)
-        self.assertTrue(abs(eval_result[0] - 0) <= 0.001)
 
-    def test_1M_Generalization__parititon_case(self):
-        init_tree()
-        att_trees = [ATT_TREE, ATT_TREE]
-        data = [['a1', ['a1', 'b1', 'b2']],
-                ['a1', ['a2', 'b1']],
-                ['a2', ['b1', 'a2']],
-                ['a2', ['a1', 'a2', 'b2']]]
+        data = [['a1', ['female', 'diabetes']],
+                ['a1', ['female', 'cold']],
+                ['b1', ['male', 'diabetes']],
+                ['a2', ['male', 'cold']]]
         result, eval_result = mondrian_l_diversity(att_trees, data, 2)
-        self.assertTrue(abs(eval_result[0] - 0) <= 0.001)
+        print result
+        self.assertTrue(abs(eval_result[0] - 0))
+
+    def test_single(self):
+        init_tree()
+        att_trees = [ATT_TREE] * 2
+
+        data = [['a1', 'b1', 'cold'],
+                ['a2', 'b1', 'cold'],
+                ['a1', 'b2', 'cold'],
+                ['a1', 'b1', 'cold'],
+                ['a1', 'b2', 'cancer'],
+                ['a1', 'b1', 'cancer']]
+        result, eval_result = mondrian_l_diversity(att_trees, data, 2)
+        print result
+        self.assertTrue(abs(eval_result[0] - 0))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -4,6 +4,8 @@ run mondrian_l_diversity with given parameters
 
 # !/usr/bin/env python
 # coding=utf-8
+import random
+
 from mondrian_l_diversity import mondrian_l_diversity
 from utils.read_adult_data import read_data as read_adult
 from utils.read_adult_data import read_tree as read_adult_tree
@@ -11,7 +13,7 @@ from utils.read_informs_data import read_data as read_informs
 from utils.read_informs_data import read_tree as read_informs_tree
 import sys
 import copy
-import pdb
+
 
 DATA_SELECT = 'a'
 
@@ -25,6 +27,7 @@ def get_result_one(att_trees, data, l=5):
     _, eval_result = mondrian_l_diversity(att_trees, data, l)
     data = copy.deepcopy(data_back)
     print "NCP %0.2f" % eval_result[0] + "%"
+    # print _
     print "Running time %0.2f" % eval_result[1] + " seconds"
 
 
@@ -103,23 +106,23 @@ if __name__ == '__main__':
     if DATA_SELECT == 'i':
         print "INFORMS data"
         DATA = read_informs()
-        ATT_TREES = read_informs_tree()
+        ATTRIBUTE_TREES = read_informs_tree()
     else:
         print "Adult data"
         DATA = read_adult()
-        ATT_TREES = read_adult_tree()
+        ATTRIBUTE_TREES = read_adult_tree()
     if FLAG == 'l':
-        get_result_l(ATT_TREES, DATA)
+        get_result_l(ATTRIBUTE_TREES, DATA)
     elif FLAG == 'qi':
-        get_result_qi(ATT_TREES, DATA)
+        get_result_qi(ATTRIBUTE_TREES, DATA)
     elif FLAG == 'data':
-        get_result_dataset(ATT_TREES, DATA)
+        get_result_dataset(ATTRIBUTE_TREES, DATA)
     elif FLAG == '':
-        get_result_one(ATT_TREES, DATA)
+        get_result_one(ATTRIBUTE_TREES, DATA)
     else:
         try:
             INPUT_L = int(FLAG)
-            get_result_one(ATT_TREES, DATA, INPUT_L)
+            get_result_one(ATTRIBUTE_TREES, DATA, INPUT_L)
         except ValueError:
             print "Usage: python anonymizer [a | i] [l | qi | data]"
             print "a: adult dataset, i: INFORMS ataset"

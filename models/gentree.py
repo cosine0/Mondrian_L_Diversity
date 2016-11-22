@@ -42,7 +42,7 @@ class GenTree(object):
         """
         try:
             return self.cover[value]
-        except:
+        except KeyError:
             return None
 
     def __len__(self):

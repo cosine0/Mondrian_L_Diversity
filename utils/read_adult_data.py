@@ -25,8 +25,10 @@ ATT_NAMES = ['age', 'workclass', 'final_weight', 'education',
 # age and education levels are treated as numeric attributes
 # only matrial_status and workclass has well defined generalization hierarchies.
 # other categorical attributes only have 2-level generalization hierarchies.
-QI_INDEX = [0, 1, 4, 5, 8, 9, 13]
-IS_CAT = [False, True, False, True, True, True, True]
+# QI_INDEX = [0, 1, 4, 5, 8, 9, 13]
+# IS_CATEGORICAL = [False, True, False, True, True, True, True]
+QI_INDEX = [1, 5, 8, 9, 13]
+IS_CATEGORICAL = [True, True, True, True, True]
 # OCC as SA, do not use class wiht only has two values
 SA_INDEX = 6
 
@@ -39,9 +41,9 @@ def read_data():
     """
     QI_num = len(QI_INDEX)
     data = []
-    numeric_dict = []
+    numeric_dicts = []
     for i in range(QI_num):
-        numeric_dict.append(dict())
+        numeric_dicts += [{}]
     # oder categorical attributes in intuitive order
     # here, we use the appear number
     data_file = open('data/adult.data', 'rU')
@@ -53,25 +55,25 @@ def read_data():
             continue
         # remove double spaces
         line = line.replace(' ', '')
-        temp = line.split(',')
-        ltemp = []
+        columns = line.split(',')
+        qi_columns = []
         for i in range(QI_num):
             index = QI_INDEX[i]
-            if IS_CAT[i] is False:
+            if IS_CATEGORICAL[i] is False:
                 try:
-                    numeric_dict[i][temp[index]] += 1
+                    numeric_dicts[i][columns[index]] += 1
                 except:
-                    numeric_dict[i][temp[index]] = 1
-            ltemp.append(temp[index])
-        ltemp.append(temp[SA_INDEX])
-        data.append(ltemp)
+                    numeric_dicts[i][columns[index]] = 1
+            qi_columns.append(columns[index])
+        qi_columns.append(columns[SA_INDEX])
+        data.append(qi_columns)
     # pickle numeric attributes and get NumRange
     for i in range(QI_num):
-        if IS_CAT[i] is False:
+        if IS_CATEGORICAL[i] is False:
             static_file = open('data/adult_' + ATT_NAMES[QI_INDEX[i]] + '_static.pickle', 'wb')
-            sort_value = list(numeric_dict[i].keys())
+            sort_value = list(numeric_dicts[i].keys())
             sort_value.sort(cmp=cmp_str)
-            pickle.dump((numeric_dict[i], sort_value), static_file)
+            pickle.dump((numeric_dicts[i], sort_value), static_file)
             static_file.close()
     return data
 
@@ -84,7 +86,7 @@ def read_tree():
     for t in QI_INDEX:
         att_names.append(ATT_NAMES[t])
     for i in range(len(att_names)):
-        if IS_CAT[i]:
+        if IS_CATEGORICAL[i]:
             att_trees.append(read_tree_file(att_names[i]))
         else:
             att_trees.append(read_pickle_file(att_names[i]))
@@ -106,35 +108,33 @@ def read_pickle_file(att_name):
     return result
 
 
-def read_tree_file(treename):
-    """read tree data from treename
+def read_tree_file(tree_name):
+    """read tree data from tree_name
     """
     leaf_to_path = {}
     att_tree = {}
     prefix = 'data/adult_'
     postfix = ".txt"
-    treefile = open(prefix + treename + postfix, 'rU')
+    tree_file = open(prefix + tree_name + postfix, 'rU')
     att_tree['*'] = GenTree('*')
     if __DEBUG:
-        print "Reading Tree" + treename
-    for line in treefile:
+        print "Reading Tree" + tree_name
+    for line in tree_file:
         # delete \n
         if len(line) <= 1:
             break
         line = line.strip()
-        temp = line.split(';')
-        # copy temp
-        temp.reverse()
-        for i, t in enumerate(temp):
-            isleaf = False
-            if i == len(temp) - 1:
-                isleaf = True
+        levels = line.split(';')
+        # copy levels
+        levels.reverse()
+        for level, level_value in enumerate(levels):
+            is_leaf = False
+            if level == len(levels) - 1:
+                is_leaf = True
             # try and except is more efficient than 'in'
-            try:
-                att_tree[t]
-            except:
-                att_tree[t] = GenTree(t, att_tree[temp[i - 1]], isleaf)
+            if level_value not in att_tree:
+                att_tree[level_value] = GenTree(level_value, att_tree[levels[level - 1]], is_leaf)
     if __DEBUG:
         print "Nodes No. = %d" % att_tree['*'].support
-    treefile.close()
+    tree_file.close()
     return att_tree

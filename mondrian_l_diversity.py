@@ -1,7 +1,7 @@
 """
 main module of mondrian_l_diversity
 """
-#!/usr/bin/env python
+# !/usr/bin/env python
 # coding=utf-8
 
 # @InProceedings{LeFevre2006a,
@@ -30,18 +30,16 @@ from models.numrange import NumRange
 from models.gentree import GenTree
 from utils.utility import list_to_str, cmp_str
 
-
 __DEBUG = False
-QI_LEN = 10
-GL_L = 5
+NUMBER_OF_QUASI_IDENTIFIER = 10
+GLOBAL_L_VALUE = 5
 RESULT = []
-ATT_TREES = []
-QI_RANGE = []
-IS_CAT = []
+ATTRIBUTE_TREES = []
+QUASI_IDENTIFIER_RANGE = []
+IS_CATEGORICAL = []
 
 
 class Partition(object):
-
     """Class for Group, which is used to keep records
     Store tree node in instances.
     self.member: records in group
@@ -57,7 +55,7 @@ class Partition(object):
         self.member = data[:]
         self.width = list(width)
         self.middle = list(middle)
-        self.allow = [1] * QI_LEN
+        self.allow = [1] * NUMBER_OF_QUASI_IDENTIFIER
 
     def add_record(self, record):
         """
@@ -76,48 +74,45 @@ def check_diversity(data):
     """
     check the distinct SA values in dataset
     """
-    sa_dict = {}
+    sensitive_attribute_dict = {}
     for record in data:
         try:
-            sa_value = list_to_str(record[-1])
+            sensitive_attribute_value = list_to_str(record[-1])
         except AttributeError:
-            sa_value = record[-1]
+            sensitive_attribute_value = record[-1]
         try:
-            sa_dict[sa_value] += 1
+            sensitive_attribute_dict[sensitive_attribute_value] += 1
         except KeyError:
-            sa_dict[sa_value] = 1
-    return len(sa_dict.keys())
+            sensitive_attribute_dict[sensitive_attribute_value] = 1
+    return len(sensitive_attribute_dict)
 
 
 def check_L_diversity(partition):
     """check if partition satisfy l-diversity
     return True if satisfy, False if not.
     """
-    sa_dict = {}
-    if len(partition) < GL_L:
+    sensitive_attribute_dict = {}
+    if len(partition) < GLOBAL_L_VALUE:
         return False
     if isinstance(partition, Partition):
         records_set = partition.member
     else:
         records_set = partition
-    num_record = len(records_set)
+    number_of_records = len(records_set)
     for record in records_set:
         try:
-            sa_value = list_to_str(record[-1])
+            sensitive_attribute_value = list_to_str(record[-1])
         except AttributeError:
-            sa_value = record[-1]
+            sensitive_attribute_value = record[-1]
         try:
-            sa_dict[sa_value] += 1
+            sensitive_attribute_dict[sensitive_attribute_value] += 1
         except KeyError:
-            sa_dict[sa_value] = 1
-    if len(sa_dict.keys()) < GL_L:
+            sensitive_attribute_dict[sensitive_attribute_value] = 1
+    if len(sensitive_attribute_dict.keys()) < GLOBAL_L_VALUE:
         return False
-    for sa_value in sa_dict.keys():
-        # if any SA value appear more than |T|/l,
-        # the partition does not satisfy l-diversity
-        if sa_dict[sa_value] > 1.0 * num_record / GL_L:
-            return False
-    return True
+    if len(sensitive_attribute_dict) >= GLOBAL_L_VALUE:
+        return True
+    return False
 
 
 def get_normalized_width(partition, index):
@@ -125,22 +120,22 @@ def get_normalized_width(partition, index):
     return Normalized width of partition
     similar to NCP
     """
-    if IS_CAT[index] is False:
+    if IS_CATEGORICAL[index] is False:
         low = partition.width[index][0]
         high = partition.width[index][1]
-        width = float(ATT_TREES[index].sort_value[high]) - float(ATT_TREES[index].sort_value[low])
+        width = float(ATTRIBUTE_TREES[index].sort_value[high]) - float(ATTRIBUTE_TREES[index].sort_value[low])
     else:
         width = partition.width[index]
-    return width * 1.0 / QI_RANGE[index]
+    return width * 1.0 / QUASI_IDENTIFIER_RANGE[index]
 
 
 def choose_dimension(partition):
-    """chooss dim with largest normlized Width
-    return dim index.
+    """choose dimension with largest normalized Width
+    return dimension index.
     """
     max_witdh = -1
     max_dim = -1
-    for i in range(QI_LEN):
+    for i in range(NUMBER_OF_QUASI_IDENTIFIER):
         if partition.allow[i] == 0:
             continue
         norm_width = get_normalized_width(partition, i)
@@ -171,32 +166,32 @@ def frequency_set(partition, dim):
 
 def find_median(partition, dim):
     """find the middle of the partition
-    return splitVal
+    return split_val
     """
     frequency = frequency_set(partition, dim)
-    splitVal = ''
-    nextVal = ''
+    split_val = ''
+    next_val = ''
     value_list = frequency.keys()
     value_list.sort(cmp=cmp_str)
     total = sum(frequency.values())
     middle = total / 2
-    if middle < GL_L:
+    if middle < GLOBAL_L_VALUE:
         return '', '', '', ''
     index = 0
     split_index = 0
     for i, qid_value in enumerate(value_list):
         index += frequency[qid_value]
         if index >= middle:
-            splitVal = qid_value
+            split_val = qid_value
             split_index = i
             break
     else:
-        print "Error: cannot find splitVal"
+        print "Error: cannot find split_val"
     try:
-        nextVal = value_list[split_index + 1]
+        next_val = value_list[split_index + 1]
     except IndexError:
-        nextVal = splitVal
-    return (splitVal, nextVal, value_list[0], value_list[-1])
+        next_val = split_val
+    return split_val, next_val, value_list[0], value_list[-1]
 
 
 def split_numeric_value(numeric_value, splitVal, nextVal):
@@ -229,34 +224,34 @@ def anonymize(partition):
     """
     allow_count = sum(partition.allow)
     for index in range(allow_count):
-        dim = choose_dimension(partition)
-        if dim == -1:
-            print "Error: dim=-1"
+        dimension = choose_dimension(partition)
+        if dimension == -1:
+            print "Error: dimension=-1"
             pdb.set_trace()
         pwidth = partition.width
         pmiddle = partition.middle
-        if IS_CAT[dim] is False:
+        if IS_CATEGORICAL[dimension] is False:
             # numeric attributes
-            (splitVal, nextVal, low, high) = find_median(partition, dim)
+            splitVal, nextVal, low, high = find_median(partition, dimension)
             # update low and high
             if low is not '':
-                partition.low[dim] = QI_DICT[dim][low]
-                partition.high[dim] = QI_DICT[dim][high]
+                partition.low[dimension] = QI_DICT[dimension][low]
+                partition.high[dimension] = QI_DICT[dimension][high]
             if splitVal == '':
-                partition.allow[dim] = 0
+                partition.allow[dimension] = 0
                 continue
-            middle_pos = ATT_TREES[dim].dict[splitVal]
+            middle_pos = ATTRIBUTE_TREES[dimension].dict[splitVal]
             lhs_middle = pmiddle[:]
             rhs_middle = pmiddle[:]
-            lhs_middle[dim], rhs_middle[dim] = split_numeric_value(pmiddle[dim], splitVal, nextVal)
+            lhs_middle[dimension], rhs_middle[dimension] = split_numeric_value(pmiddle[dimension], splitVal, nextVal)
             lhs_width = pwidth[:]
             rhs_width = pwidth[:]
-            lhs_width[dim] = (pwidth[dim][0], middle_pos)
-            rhs_width[dim] = (ATT_TREES[dim].dict[nextVal], pwidth[dim][1])
+            lhs_width[dimension] = (pwidth[dimension][0], middle_pos)
+            rhs_width[dimension] = (ATTRIBUTE_TREES[dimension].dict[nextVal], pwidth[dimension][1])
             lhs = []
             rhs = []
             for record in partition.member:
-                pos = ATT_TREES[dim].dict[record[dim]]
+                pos = ATTRIBUTE_TREES[dimension].dict[record[dimension]]
                 if pos <= middle_pos:
                     # lhs = [low, means]
                     lhs.append(record)
@@ -264,7 +259,7 @@ def anonymize(partition):
                     # rhs = (means, high]
                     rhs.append(record)
             if check_L_diversity(lhs) is False or check_L_diversity(rhs) is False:
-                partition.allow[dim] = 0
+                partition.allow[dimension] = 0
                 continue
             # anonymize sub-partition
             anonymize(Partition(lhs, lhs_width, lhs_middle))
@@ -272,70 +267,68 @@ def anonymize(partition):
             return
         else:
             # normal attributes
-            split_node = ATT_TREES[dim][partition.middle[dim]]
+            split_node = ATTRIBUTE_TREES[dimension][partition.middle[dimension]]
             if len(split_node.child) == 0:
-                partition.allow[dim] = 0
+                partition.allow[dimension] = 0
                 continue
             sub_node = [t for t in split_node.child]
             sub_partitions = []
             for i in range(len(sub_node)):
                 sub_partitions.append([])
             for record in partition.member:
-                qid_value = record[dim]
+                quasi_identifier_value = record[dimension]
                 for i, node in enumerate(sub_node):
-                    try:
-                        node.cover[qid_value]
+                    if quasi_identifier_value in node.cover:
                         sub_partitions[i].append(record)
                         break
-                    except KeyError:
-                        continue
                 else:
                     print "Generalization hierarchy error!"
                     pdb.set_trace()
-            flag = True
+
+            l_satisfied = True
             for sub_partition in sub_partitions:
                 if len(sub_partition) == 0:
                     continue
-                if check_L_diversity(sub_partition) is False:
-                    flag = False
+                if not check_L_diversity(sub_partition):
+                    l_satisfied = False
                     break
-            if flag:
+            if l_satisfied:
                 for i, sub_partition in enumerate(sub_partitions):
                     if len(sub_partition) == 0:
                         continue
                     wtemp = pwidth[:]
                     mtemp = pmiddle[:]
-                    wtemp[dim] = len(sub_node[i])
-                    mtemp[dim] = sub_node[i].value
+                    wtemp[dimension] = len(sub_node[i])
+                    mtemp[dimension] = sub_node[i].value
                     anonymize(Partition(sub_partition, wtemp, mtemp))
                 return
             else:
-                partition.allow[dim] = 0
+                partition.allow[dimension] = 0
                 continue
     RESULT.append(partition)
 
 
-def init(att_trees, data, L, QI_num=-1):
+def init(attribute_trees, data, l_value, number_of_quasi_identifier=None):
     """
     resset global variables
     """
-    global GL_L, RESULT, QI_LEN, ATT_TREES, QI_RANGE, IS_CAT
-    ATT_TREES = att_trees
-    if QI_num <= 0:
-        QI_LEN = len(data[0]) - 1
+    global GLOBAL_L_VALUE, RESULT, NUMBER_OF_QUASI_IDENTIFIER, ATTRIBUTE_TREES, QUASI_IDENTIFIER_RANGE, IS_CATEGORICAL
+    ATTRIBUTE_TREES = attribute_trees
+    if number_of_quasi_identifier is None:
+        NUMBER_OF_QUASI_IDENTIFIER = len(data[0]) - 1
     else:
-        QI_LEN = QI_num
-    for gen_tree in att_trees:
-        if isinstance(gen_tree, NumRange):
-            IS_CAT.append(False)
+        NUMBER_OF_QUASI_IDENTIFIER = number_of_quasi_identifier
+    for generalization_tree in attribute_trees:
+        if isinstance(generalization_tree, NumRange):
+            IS_CATEGORICAL.append(False)
         else:
-            IS_CAT.append(True)
-    GL_L = L
+            IS_CATEGORICAL.append(True)
+    GLOBAL_L_VALUE = l_value
     RESULT = []
-    QI_RANGE = []
+    QUASI_IDENTIFIER_RANGE = []
 
 
-def mondrian_l_diversity(att_trees, data, l, QI_num=-1):
+def mondrian_l_diversity(attribute_trees, data, l_value, nubmer_of_quasy_idnetifier=None):
     """
     Mondrian for l-diversity.
     This fuction support both numeric values and categoric values.
@@ -343,20 +336,20 @@ def mondrian_l_diversity(att_trees, data, l, QI_num=-1):
     For categoric values, each iterator is a split on GH.
     The final result is returned in 2-dimensional list.
     """
-    init(att_trees, data, l, QI_num)
+    init(attribute_trees, data, l_value, nubmer_of_quasy_idnetifier)
     middle = []
     result = []
-    wtemp = []
-    for i in range(QI_LEN):
-        if IS_CAT[i] is False:
-            QI_RANGE.append(ATT_TREES[i].range)
-            wtemp.append((0, len(ATT_TREES[i].sort_value) - 1))
-            middle.append(ATT_TREES[i].value)
+    whole_qi_attributes = []
+    for i in range(NUMBER_OF_QUASI_IDENTIFIER):
+        if IS_CATEGORICAL[i] is False:
+            QUASI_IDENTIFIER_RANGE.append(ATTRIBUTE_TREES[i].range)
+            whole_qi_attributes.append((0, len(ATTRIBUTE_TREES[i].sort_value) - 1))
+            middle.append(ATTRIBUTE_TREES[i].value)
         else:
-            QI_RANGE.append(len(ATT_TREES[i]['*']))
-            wtemp.append(len(ATT_TREES[i]['*']))
+            QUASI_IDENTIFIER_RANGE.append(len(ATTRIBUTE_TREES[i]['*']))
+            whole_qi_attributes.append(len(ATTRIBUTE_TREES[i]['*']))
             middle.append('*')
-    whole_partition = Partition(data, wtemp, middle)
+    whole_partition = Partition(data, whole_qi_attributes, middle)
     start_time = time.time()
     anonymize(whole_partition)
     rtime = float(time.time() - start_time)
@@ -365,18 +358,18 @@ def mondrian_l_diversity(att_trees, data, l, QI_num=-1):
     for partition in RESULT:
         rncp = 0.0
         dp += len(partition) ** 2
-        for index in range(QI_LEN):
+        for index in range(NUMBER_OF_QUASI_IDENTIFIER):
             rncp += get_normalized_width(partition, index)
         for index in range(len(partition)):
             gen_result = partition.middle + [partition.member[index][-1]]
             result.append(gen_result[:])
         rncp *= len(partition)
         ncp += rncp
-    ncp /= QI_LEN
+    ncp /= NUMBER_OF_QUASI_IDENTIFIER
     ncp /= len(data)
     ncp *= 100
     if __DEBUG:
-        print "L=%d" % l
+        print "L=%d" % l_value
         from decimal import Decimal
         print "Discernability Penalty=%.2E" % Decimal(str(dp))
         print "Diversity", check_diversity(data)
@@ -390,4 +383,4 @@ def mondrian_l_diversity(att_trees, data, l, QI_num=-1):
     if len(result) != len(data):
         print "Error: lose records"
         pdb.set_trace()
-    return (result, (ncp, rtime))
+    return result, (ncp, rtime)
